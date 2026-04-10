@@ -26,6 +26,17 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 }
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
+	if cfg.platform != "dev" {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("Endpoint can only be accessed in a developer environment."))
+		return
+	}
+	err := cfg.database.ResetUsers(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't access the database", err)
+		return
+	}
+
 	cfg.fileserverHits.Store(0)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Hits reset to 0"))
